@@ -1,0 +1,31 @@
+---
+layout: layouts/base.njk
+---
+<header>
+    <h1>Hello!</h1>
+    <h2>My name is <a href="about.html">Christa...</a></h2>
+    <h3>welcome to my personal site!</h3>
+    <p>If you're looking for my github, it's <a 
+        href="https://www.github.com/cleggct">
+        github.com/cleggct</a>.
+        <br>
+        If you need to get in touch with me, email me at
+        cleggct (at) gmail (dot) com.</p>
+    <p>Otherwise, here's a random cat image! (courtesy of <a href="https://www.thecatapi.com">the cat api</a>)</p>
+    <img id="catImage" src="" alt="Cat Image :3">
+</header>
+<h2>Pages on this site:</h2>
+{%- for post in collections.posts -%}
+    <a href="{{post.page.url}}"><h3>{{post.data.title}}</h3></a>
+{%- endfor -%}
+<script>
+    fetch('https://api.thecatapi.com/v1/images/search')
+        .then(response => response.json())
+        .then(data => {
+            const catImageUrl = data[0].url;
+            document.getElementById(
+                'catImage').src = catImageUrl;
+        })
+        .catch(error => console.error(
+            'Error fetching cat image:', error));
+</script>
