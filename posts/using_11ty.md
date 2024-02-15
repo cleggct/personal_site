@@ -14,14 +14,19 @@ to generate pretty much any kind of content I want.
 I also really like the way 11ty makes use of the directory structure of
 a project to encapsulate relationships between different pieces of content.
 I can have the content of all my posts as markdown files in a directory
-called "posts," and then tell 11ty to apply a particular template to all of
-the files in that folder to generate the pages for each post, while also
+called "posts," along with a JSON object tagging all files in that directory as
+"posts" and telling 11ty to apply a particular template to them, while also
 having a template in the base folder for generating an index page with links
-to each of my posts. Then when the site gets built, an index.html file is
-generated in the base directory as an entry point that neatly links to all
-the site content. Simple!
+to each of the pages tagged with "posts". Then when the site gets built, html
+files are generated for each of the files from "posts" according to whatever
+template we specified and placed in "output_dir/posts."
+Additionally, an index.html file is generated in the base directory as an entry
+point that neatly links to all the site content. Simple, and with our templates
+and directory structure all set up, all we have to do is populate the site with
+content in the form of markdown files. Everything else is handled by
+11ty!
 
-To summarize, 11ty is great because it represents a wonderful middle ground
+To summarize, 11ty is great because it represents a nice middle ground
 between the power and flexibility that comes with using a really big and fancy
 web development framework like react, and the simplicity of just working in
 HTML/CSS.
