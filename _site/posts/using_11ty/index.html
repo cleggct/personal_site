@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- <link rel="icon" type="image/png" href="data:image/png;base64,"> -->
+    <title>Using 11ty</title>
+    <style>
+    body {
+        max-width: 650px;
+        margin: 40px auto;
+        padding: 0 10px;
+        font: 18px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+        color:#101113;
+        background:#edf4fe
+    }
+
+    h1, h2, h3 {
+        line-height:1.2
+    }
+
+    img {
+        display: block;
+        width:100%;
+        max-width:600px;
+        margin-left: auto;
+        margin-right: auto;
+        padding: 15px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+        body {
+            color: #edf4fe;
+            background:#101113
+        }
+
+        a:link {
+            color:#3694ff
+        }
+
+        a:visited {
+            color: #6673ff
+        }
+    }
+    </style>
+</head>
+<body>
+    <main>
+    <h1>Rebuilding My Personal Site With 11ty</h1>
+<p>I recently redesigned my personal site again, this time switching
+to using <a href="https://www.11ty.dev">11ty</a> to build my site.
+I really like 11ty for the reason that it does a very good job of
+getting out of the way and letting you focus on designing your site
+without having to worry about wrangling with your build tools. For
+a site that's mostly just pure HTML/CSS, 11ty is ideal
+because it allows me to write powerful templates consisting of pretty
+much just raw HTML/CSS, while also giving me lots of control over how
+those templates are applied to the site content. This way, I never
+have to rewrite the same HTML code anywhere and I can write templates
+to generate pretty much any kind of content I want.</p>
+<p>I also really like the way 11ty makes use of the directory structure of
+a project to encapsulate relationships between different pieces of content.
+I can have the content of all my posts as markdown files in a directory
+called &quot;posts,&quot; along with a JSON object tagging all files in that directory as
+&quot;posts&quot; and telling 11ty to apply a particular template to them, while also
+having a template in the base folder for generating an index page with links
+to each of the pages tagged with &quot;posts&quot;. Then when the site gets built, html
+files are generated for each of the files from &quot;posts&quot; according to whatever
+template we specified and placed in &quot;output_dir/posts.&quot;
+Additionally, an index.html file is generated in the base directory as an entry
+point that neatly links to all the site content. Simple, and with our templates
+and directory structure all set up, all we have to do is populate the site with
+content in the form of markdown files. Everything else is handled by
+11ty!</p>
+<p>To summarize, 11ty is great because it represents a nice middle ground
+between the power and flexibility that comes with using a really big and fancy
+web development framework like react, and the simplicity of just working in
+HTML/CSS.</p>
+
+</main>
+</body>
+</html>

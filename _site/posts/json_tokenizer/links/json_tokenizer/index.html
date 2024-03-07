@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- <link rel="icon" type="image/png" href="data:image/png;base64,"> -->
+    <title>Json Tokenizer</title>
+    <style>
+    body {
+        max-width: 650px;
+        margin: 40px auto;
+        padding: 0 10px;
+        font: 18px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+        color:#101113;
+        background:#edf4fe
+    }
+
+    h1, h2, h3 {
+        line-height:1.2
+    }
+
+    img {
+        display: block;
+        width:100%;
+        max-width:600px;
+        margin-left: auto;
+        margin-right: auto;
+        padding: 15px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+        body {
+            color: #edf4fe;
+            background:#101113
+        }
+
+        a:link {
+            color:#3694ff
+        }
+
+        a:visited {
+            color: #6673ff
+        }
+    }
+    </style>
+</head>
+<body>
+    <main>
+    <pre><code>from enum import Enum
+import re
+from typing import Tuple
+
+number_pattern = re.compile(r'^[-+]?(\d*\.\d+|\d+(\.\d*)?)$')
+escape_sequence_pattern = re.compile(r'[\\\'&quot;nrtbf]')
+whitespace_pattern = re.compile(r'\s')
+
+class TokenType(Enum):
+    BEGIN_OBJECT = 1
+    BEGIN_ARRAY = 2
+    END_OBJECT = 3
+    END_ARRAY = 4
+    VALUE_SEPARATOR = 5
+    NAME_SEPARATOR = 6
+    BEGIN_STRING = 7
+    END_STRING = 8
+    NULL = 9
+    TRUE = 10
+    FALSE = 11
+    WHITESPACE = 12
+    NUMBER = 13
+    STRING_CHAR = 14
+    ERROR = 15
+    END = 16
+
+class Tokenizer:
+
+    def __init__(self, inputs):
+        &quot;&quot;&quot;Initializes tokenizer with input stream inputs.&quot;&quot;&quot;
+        self.inputs = inputs
+        self.lineno = 1  # current line being parsed
+        self.charno = 1  # current character being parsed
+        self.current_line = &quot;&quot; # characters read so far on current line.
+        self.buffer = None # token read from input that has not yet been parsed
+        self.token_stream = self._tokenizer(inputs)
+
+    def seeing(self, token_type) -&gt; bool:
+        &quot;&quot;&quot;Returns True if next token in the input stream is of the given type.&quot;&quot;&quot;
+        t = self.next_token()
+        if isinstance(token_type, str):
+            return t[1] == token_type
+        else:
+            return t[0] == token_type
+
+    def match(self, token_type) -&gt; str:
+        &quot;&quot;&quot;Consumes next token in input stream.  
+
+        Expects it to be of type token_type.  If not, generates error.
+        &quot;&quot;&quot;
+        t = self.get()
+        if isinstance(token_type, str):
+            if t[1] != token_type:
+                raise RuntimeError(f&quot;Expected token of {token_type} but got {t[1]}&quot;)
+        else:
+            if t[0] != token_type:
+                raise RuntimeError(f&quot;Expected token of type {token_type} but got {t[0]}&quot;)
+        return t[1]
+
+    def match_string(self) -&gt; str:
+        &quot;&quot;&quot;Matches a string token, e.g., &quot;char*&quot;. &quot;&quot;&quot;
+        self.match(TokenType.BEGIN_STRING)
+        s = &quot;&quot;
+        while not self.seeing(TokenType.END_STRING):
+            s = s + self.get()[1]
+        self.match(TokenType.END_STRING)
+        return s
+    
+    def match_number(self) -&gt; str:
+        &quot;&quot;&quot;Matches a number token, e.g., 123.45&quot;&quot;&quot;
+        return self.match(TokenType.NUMBER)
+
+    def match_value(self):
+        if self.seeing(TokenType.BEGIN_OBJECT):
+            return self.match_object()
+        elif self.seeing(TokenType.BEGIN_ARRAY):
+            return self.match_array()
+        elif self.seeing(TokenType.BEGIN_STRING):
+            return self.match_string()
+        elif self.seeing(TokenType.NUMBER):
+            return self.get()
+        elif self.seeing(TokenType.NULL):
+            return self.get()
+        elif self.seeing(TokenType.TRUE):
+            return self.get()
+        elif self.seeing(TokenType.FALSE):
+            return self.get()
+        else:
+            raise RuntimeError(f&quot;Invalid token in match_value: {self.next_token()}&quot;)
+
+    def match_object(self):
+        &quot;&quot;&quot;Matches a an object.&quot;&quot;&quot;
+        self.match(TokenType.BEGIN_OBJECT)
+        d = {}
+        while True:
+            key = self.match_string()
+            self.match(TokenType.NAME_SEPARATOR)
+            value = self.match_value()
+            d[key] = value
+            if self.seeing(TokenType.END_OBJECT):
+                break
+            self.match(TokenType.VALUE_SEPARATOR)
+        self.match(TokenType.END_OBJECT)
+        return d
+
+    def match_array(self):
+        self.match(TokenType.BEGIN_ARRAY)
+        l = []
+        while True:
+            l.append(self.match_value())
+            if self.seeing(TokenType.END_ARRAY):
+                break
+            self.match(TokenType.VALUE_SEPARATOR)
+        self.match(TokenType.END_ARRAY)
+        return l
+
+    def get(self) -&gt; Tuple[TokenType, str]:
+        &quot;&quot;&quot;Consumes next token and returns it.&quot;&quot;&quot;
+        if self.buffer:
+            token = self.buffer
+            self.buffer = None
+        else:
+            token = next(self.token_stream)
+        return token
+
+    def get_str(self) -&gt; str:
+        &quot;&quot;&quot;Consumes next token and returns string component of it.&quot;&quot;&quot;
+        return self.get()[1]
+
+    def next_token(self) -&gt; Tuple[TokenType, str]:
+        &quot;&quot;&quot;Returns the next token that has not been parsed without consuming it&quot;&quot;&quot;
+        if not self.buffer:
+            self.buffer = next(self.token_stream)
+        return self.buffer
+
+    def _tokenizer(self, inputs):
+
+        reading_string = False
+        buffer = ''
+        escaped = False
+        reading_number = False
+
+        for char in inputs:
+
+            if reading_number and not number_pattern.match(buffer + char):
+                number = buffer
+                buffer = ''
+                reading_number = False
+                yield (TokenType.NUMBER, number)
+            
+            if not reading_string:
+                if char == '\n':
+                    self.lineno += 1
+                    self.charno = 1
+                else:
+                    self.charno += 1
+
+                if char == '{':
+                    yield (TokenType.BEGIN_OBJECT, char)
+                elif char == '[':
+                    yield (TokenType.BEGIN_ARRAY, char) 
+                elif char == ',':
+                    yield (TokenType.VALUE_SEPARATOR, char)
+                elif char == ':':
+                    yield (TokenType.NAME_SEPARATOR, char)
+                elif char == '}':
+                    yield (TokenType.END_OBJECT, char)
+                elif char == ']':
+                    yield (TokenType.END_ARRAY, char)
+                elif char == '&quot;':
+                    reading_string = True
+                    yield (TokenType.BEGIN_STRING, char)
+                elif whitespace_pattern.match(char):
+                    continue
+                    # yield (TokenType.WHITESPACE, char)
+                else:
+                    buffer += char
+                    if buffer == 'false':
+                        old_buffer = buffer
+                        buffer = ''
+                        yield (TokenType.FALSE, old_buffer)
+                    elif buffer == 'null':
+                        old_buffer = buffer
+                        buffer = ''
+                        yield (TokenType.NULL, old_buffer)
+                    elif buffer == 'true':
+                        old_buffer = buffer
+                        buffer = ''
+                        yield (TokenType.TRUE, old_buffer)
+                    elif number_pattern.match(buffer):
+                        reading_number = True
+                    else:
+                        if len(buffer) &gt; 5:
+                            old_buffer = buffer
+                            buffer = ''
+                            yield (TokenType.ERROR, old_buffer)
+                            
+            else: #we are in the midst of reading a string
+                if escaped: #if the last character was an escape
+
+                    if escape_sequence_pattern.match(char):
+                        escaped = False
+                        yield (TokenType.STRING_CHAR, f'\\{char}')
+                    else:
+                        escaped = False
+                        yield (TokenType.ERROR, f'\\{char}')
+
+                else: #the last character was not an escape
+                    if char == '\\': #if we read an escape, set the escaped flag
+                        escaped = True
+                    elif char == '&quot;':
+                        reading_string = False
+                        yield (TokenType.END_STRING, char)
+                    else:
+                        yield (TokenType.STRING_CHAR, char)
+        
+        if reading_number:
+            number = buffer
+            buffer = ''
+            reading_number = False
+            yield (TokenType.NUMBER, number)
+
+        yield (TokenType.END, '')
+
+
+if __name__ == &quot;__main__&quot;:
+    print(&quot;Enter some JSON code to tokenize:&quot;)
+    while True:
+        s = input()
+        t = Tokenizer(list(s))
+        while True:
+            token = t.get()
+            print(token)
+            if token[0] == TokenType.END:
+                break
+</code></pre>
+
+</main>
+</body>
+</html>
